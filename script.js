@@ -1,9 +1,9 @@
-const inputTextarea = document.getElementById("rst-input");
+const inputText = document.getElementById("package-name-input");
 const outputFrame = document.getElementById("html-output");
 
 // Activate controls that are inert if JavaScript is disabled
-inputTextarea.disabled = false;
-inputTextarea.placeholder = "Enter reStructuredText content here."
+inputText.disabled = false;
+inputText.placeholder = "Enter Python package name here."
 document.getElementsByTagName("button")[0].disabled = false;
 document.getElementsByTagName("button")[0].style.visibility = "visible";
 outputFrame.contentDocument.write("<!DOCTYPE html> Initializing...\n");
@@ -30,28 +30,54 @@ async function main() {
 }
 let pyodideReadyPromise = main();
 
-async function rstToHtml() {
+async function readmeToHtml() {
   try {
     checkForWebAssembly();
     let pyodide = await pyodideReadyPromise;
-    await pyodide.loadPackage("docutils");
-    // Add pygments to support code blocks with language specifiers
-    // (they automatically trigger syntax highlighting)
-    await pyodide.loadPackage("pygments");
+    await pyodide.loadPackage("micropip");
+    const micropip = pyodide.pyimport("micropip");
+    await micropip.install('readme_renderer');
 
-    // We pass the textarea contents as a variable
-    // instead of interpolating them into the code below.
-    // For the reasoning, see the description of commit 40037ef37.
-    pyodide.globals.set("input_text", inputTextarea.value);
+    const packageName = inputText.value;
+    const pypiUrl = `https://pypi.org/pypi/${packageName}/json`;
+    // Fetch the package's metadata from PyPI
+    const response = await fetch(pypiUrl);
+    const metadata = await response.json().then((data) => {
+      return {
+        description: data.info.description,
+        description_content_type: data.info.description_content_type,
+      };
+    });
 
-    // Python code to parse a rST string into HTML using docutils
-    // as recommended in https://stackoverflow.com/a/6654576/266309.
-    // Note: the `decode()` is needed to convert `publish_string()`'s output
-    // from a bytestring to a plain string. See https://stackoverflow.com/a/606199/266309.
-    let result = await pyodide.runPythonAsync(`
-      from docutils.core import publish_string
-      publish_string(input_text, writer_name="html5").decode("utf-8")
-    `);
+    pyodide.globals.set("input_text", metadata.description);
+    pyodide.globals.set("content_type", metadata.description_content_type);
+
+    const md = window.markdownit({
+      html: true,
+      linkify: true,
+      typographer: true,
+    });
+
+    let result = null;
+
+    if (metadata.description_content_type === "text/markdown") {
+      result = md.render(metadata.description);
+    } else {
+      // Reference: https://github.com/pypi/warehouse/blob/8c51e0a2d3a54c6d99b73587ee95c23756728e70/warehouse/utils/readme.py#L19
+      result = await pyodide.runPythonAsync(`
+import readme_renderer.rst
+import readme_renderer.txt
+
+_RENDERERS = {
+    None: readme_renderer.rst,  # Default if description_content_type is None
+    "": readme_renderer.rst,  # Default if description_content_type is None
+    "text/plain": readme_renderer.txt,
+    "text/x-rst": readme_renderer.rst,
+}
+
+renderer = _RENDERERS.get(content_type, readme_renderer.txt)
+renderer.render(input_text)`);
+    }
 
     outputFrame.srcdoc = result;
 

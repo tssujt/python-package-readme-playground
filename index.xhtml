@@ -2,28 +2,29 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Live rST playground</title>
+    <title>Live Python packages README playground</title>
     <meta name="viewport" content="width=device-width" />
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.1/pyc/pyodide.js"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/pyc/pyodide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <p>
       This is a live playground for rendering
-      <a href="https://docutils.sourceforge.io/rst.html">reStructuredText</a>
+      long_description/README files of Python packages
       into HTML entirely in the browser,
       using <a href="https://pyodide.org">Pyodide</a>
-      to run <a href="https://docutils.sourceforge.io">docutils</a>.
-      Source code <a href="https://github.com/waldyrious/rst-playground">on GitHub</a>.
+      to run <a href="https://github.com/pypa/readme_renderer">pypa/readme_renderer</a>.
+      Source code <a href="https://github.com/tssujt/python-readme-render-playground">on GitHub</a>.
       <noscript><mark><b>Note:</b> This page requires JavaScript to work.</mark></noscript>
     </p>
     <form>
-      <label for="rst-input">reStructuredText input</label>
+      <label for="package-name-input">Package Name</label>
+      <input name="package_name_input" id="package-name-input" autofocus="true" disabled="true"></input>
       <label for="html-output">HTML output</label>
-      <textarea name="rst_input" id="rst-input" autofocus="true" disabled="true"></textarea>
       <iframe id="html-output"></iframe>
     </form>
-    <button disabled="true" onclick="rstToHtml()">Run</button>
+    <button disabled="true" onclick="readmeToHtml()">Run</button>
 
     <script src="script.js"></script>
   </body>
